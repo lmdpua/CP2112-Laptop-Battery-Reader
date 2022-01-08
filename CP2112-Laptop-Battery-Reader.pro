@@ -11,10 +11,8 @@ CONFIG += c++11
 SOURCES += \
     BatteryCommands.cpp \
     cp2112.cpp \
-    cp2112_demo.c \
     main.cpp \
-    mainwindow.cpp \
-    smbus.c
+    mainwindow.cpp
 
 HEADERS += \
     BatteryCommands.h \
@@ -22,7 +20,6 @@ HEADERS += \
     SMBusConfig.h \
     cp2112.h \
     mainwindow.h \
-    smbus.h \
     types.h
 
 FORMS += \

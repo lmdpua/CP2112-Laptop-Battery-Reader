@@ -36,7 +36,7 @@ UINT16 ReadWord(HID_SMBUS_DEVICE device, INT *data, INT battery_register)
     return FALSE;
 }
 
-UINT16 ReadBlock(HID_SMBUS_DEVICE device, char *block, INT *block_length, INT battery_register)
+UINT16 ReadTextBlock(HID_SMBUS_DEVICE device, char *block, INT *block_length, INT battery_register)
 {
     BOOL                opened;                 //Открылось ли устройство
     HID_SMBUS_S0        status0;                //Расширенный статус 0

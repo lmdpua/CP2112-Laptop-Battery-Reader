@@ -1,17 +1,12 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "types.h"
-#include "smbus.h"
 #include "SLABCP2112.h"
 #include "cp2112.h"
 #include "BatteryCommands.h"
 #include "SMBusConfig.h"
 #include <QThread>
 #include <bitset>
-//#include <QPalette>
-//#include <QString>
-//#include <string.h>
-
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -30,20 +25,13 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-//#define VID 0x10C4
-//#define PID 0xEA90
-
-HID_SMBUS_DEVICE    m_hidSmbus;
-INT                 DevNumbers;
-INT                 DevNumber;
-
-void MainWindow::on_pushButton_clicked()
-{
-    DevNumber=0;
-}
 
 void MainWindow::slotTimerAlarm()
 {
+    HID_SMBUS_DEVICE    m_hidSmbus;
+    INT                 DevNumbers;
+    INT                 DevNumber;
+
     DevNumbers = CP2112_Find();
     if (DevNumbers==0)
     {
@@ -106,7 +94,87 @@ void MainWindow::slotTimerAlarm()
         ui->statusbar->showMessage(str);
 
 
+#define mAh FALSE
+#define mWh TRUE
+        BOOL capacityMode = mAh;
 
+        //Отображаем значения битов в байте BATTERY_MODE
+        for (BYTE i=0; i<16;i++)
+        {
+#define     BATTERY_MODE_ADDRESS 0x03
+            INT     bitFlags;
+            QLabel *BatteryModeBitFlag [16] = { ui->bm_00,ui->bm_01,ui->bm_02, ui->bm_03,
+                                                ui->bm_04,ui->bm_05,ui->bm_06, ui->bm_07,
+                                                ui->bm_08,ui->bm_09,ui->bm_10, ui->bm_11,
+                                                ui->bm_12,ui->bm_13,ui->bm_14, ui->bm_15,
+                                              };
+            if (ReadWord(m_hidSmbus, &bitFlags, BATTERY_MODE_ADDRESS))
+            {
+                std::bitset<16> bits = bitFlags;
+                BOOL y;
+                y=bits.test(i);
+                switch (y)
+                {
+                case 1:
+                BatteryModeBitFlag[i]->setStyleSheet("background-color: red");
+                if (i==15)capacityMode=mWh;
+                    break;
+                case 0:
+                   BatteryModeBitFlag[i]->setStyleSheet("background-color: green");
+                   if (i==15)capacityMode=mAh;
+                   break;
+                }
+            }
+            else BatteryModeBitFlag[i]->setStyleSheet("default");
+        }
+
+        if (capacityMode==mWh)
+        {
+            ui->unit_0x01->setText("10mWh");
+            ui->unit_0x04->setText("10mW");
+            ui->unit_0x0f->setText("10mWh");
+            ui->unit_0x10->setText("10mWh");
+            ui->unit_0x18->setText("10mWh");
+        }
+
+        if (capacityMode==mAh)
+        {
+            ui->unit_0x01->setText("mAh");
+            ui->unit_0x04->setText("mA");
+            ui->unit_0x0f->setText("mAh");
+            ui->unit_0x10->setText("mAh");
+            ui->unit_0x18->setText("mAh");
+        }
+
+
+
+        //Отображаем значения битов в байте BATTERY_STATUS
+        for (BYTE i=0; i<16;i++)
+        {
+#define     BATTERY_STATUS_ADDRESS 0x16
+            INT     bitFlags;
+            QLabel *BatteryStatusBitFlag [16] = { ui->bs_00,ui->bs_01,ui->bs_02, ui->bs_03,
+                                                  ui->bs_04,ui->bs_05,ui->bs_06, ui->bs_07,
+                                                  ui->bs_08,ui->bs_09,ui->bs_10, ui->bs_11,
+                                                  ui->bs_12,ui->bs_13,ui->bs_14, ui->bs_15,
+                                                };
+            if (ReadWord(m_hidSmbus, &bitFlags, BATTERY_STATUS_ADDRESS))
+            {
+                std::bitset<16> bits = bitFlags;
+                BOOL y;
+                y=bits.test(i);
+                switch (y)
+                {
+                case 1:
+                BatteryStatusBitFlag[i]->setStyleSheet("background-color: red");
+                    break;
+                case 0:
+                   BatteryStatusBitFlag[i]->setStyleSheet("background-color: green");
+                   break;
+                }
+            }
+            else BatteryStatusBitFlag[i]->setStyleSheet("default");
+        }
 
 
         QLabel *SmartBatteryInterface [37] = {
@@ -210,7 +278,7 @@ void MainWindow::slotTimerAlarm()
                     INT     length_of_block=0;
                     char    readed_block[32]={0};
 
-                    if (ReadBlock(m_hidSmbus, readed_block, &length_of_block, Addresses[i]))
+                    if (ReadTextBlock(m_hidSmbus, readed_block, &length_of_block, Addresses[i]))
                     {
                         std::string block_string (readed_block, length_of_block);
                         str = QString::fromStdString(block_string);
@@ -251,8 +319,7 @@ void MainWindow::slotTimerAlarm()
                     ui->label_0x3c,
                     ui->label_0x3d,
                     ui->label_0x3e,
-                    ui->label_0x3f
-                };
+                    ui->label_0x3f };
 
                 // Прочтем значение по адресу CELL4_VOLTAGE как массив
                 if (ReadDataBlock(m_hidSmbus, readed_block, &length_of_block, Addresses[i]))
@@ -308,8 +375,10 @@ void MainWindow::slotTimerAlarm()
                                 str = QString::number(data_word);
                                 SmartBatteryInterface[i+n]->setText(str);
 
-                                str=QString("Cell%1Voltage() (0x23)").arg(4-n); //  Вернем стандартную надпись
-                                cell_voltage_label[n]->setText(str);
+                                str=QString("Cell%1Voltage() (0x%2)")
+                                        .arg(4-n)               // Первый аргумент, CELL NUMBER
+                                        .arg((0x3c+n),2,16);    // Второй аргумент, HEX ADDRESS
+                                cell_voltage_label[n]->setText(str); //Вернем стандартную надпись
                             }
                             else SmartBatteryInterface[i+n]->clear();
                         }
@@ -344,82 +413,11 @@ void MainWindow::slotTimerAlarm()
             }
         }
 
-        //Отображаем значения битов в байте BATTERY_MODE
-        for (BYTE i=0; i<16;i++)
-        {
-#define     BATTERY_MODE_ADDRESS 0x03
-            INT     bitFlags;
-            QLabel *BatteryModeBitFlag [16] = { ui->bm_00,ui->bm_01,ui->bm_02, ui->bm_03,
-                                                ui->bm_04,ui->bm_05,ui->bm_06, ui->bm_07,
-                                                ui->bm_08,ui->bm_09,ui->bm_10, ui->bm_11,
-                                                ui->bm_12,ui->bm_13,ui->bm_14, ui->bm_15,
-                                              };
-            if (ReadWord(m_hidSmbus, &bitFlags, BATTERY_MODE_ADDRESS))
-            {
-                std::bitset<16> bits = bitFlags;
-                BOOL y;
-                y=bits.test(i);
-                switch (y)
-                {
-                case 1:
-                BatteryModeBitFlag[i]->setStyleSheet("background-color: red");
-                    break;
-                case 0:
-                   BatteryModeBitFlag[i]->setStyleSheet("background-color: green");
-                   break;
-                }
-            }
-            else BatteryModeBitFlag[i]->setStyleSheet("default");
-        }
 
-
-        //Отображаем значения битов в байте BATTERY_STATUS
-        for (BYTE i=0; i<16;i++)
-        {
-#define     BATTERY_STATUS_ADDRESS 0x16
-            INT     bitFlags;
-            QLabel *BatteryStatusBitFlag [16] = { ui->bs_00,ui->bs_01,ui->bs_02, ui->bs_03,
-                                                  ui->bs_04,ui->bs_05,ui->bs_06, ui->bs_07,
-                                                  ui->bs_08,ui->bs_09,ui->bs_10, ui->bs_11,
-                                                  ui->bs_12,ui->bs_13,ui->bs_14, ui->bs_15,
-                                                };
-            if (ReadWord(m_hidSmbus, &bitFlags, BATTERY_STATUS_ADDRESS))
-            {
-                std::bitset<16> bits = bitFlags;
-                BOOL y;
-                y=bits.test(i);
-                switch (y)
-                {
-                case 1:
-                BatteryStatusBitFlag[i]->setStyleSheet("background-color: red");
-                    break;
-                case 0:
-                   BatteryStatusBitFlag[i]->setStyleSheet("background-color: green");
-                   break;
-                }
-            }
-            else BatteryStatusBitFlag[i]->setStyleSheet("default");
-        }
 
         HidSmbus_Close(m_hidSmbus);
 //        HidSmbus_Reset(m_hidSmbus);
     }
 }
 
-
-
-void MainWindow::on_pushButton_2_clicked()
-{
-//    CP2112_Open1(DevNumber);
-    BOOL                    opened;         //Открылось ли устройство
-    HID_SMBUS_STATUS        status;
-
-    status = HidSmbus_Open(&m_hidSmbus, DevNumber, VID, PID);
-//    if (status != HID_SMBUS_SUCCESS) return FALSE;
-    status = HidSmbus_IsOpened(m_hidSmbus, &opened);
-//    if (status != HID_SMBUS_SUCCESS) return FALSE;
-//    if (!opened)return FALSE;
-//    return TRUE;   // Успех!
-
-}
 
