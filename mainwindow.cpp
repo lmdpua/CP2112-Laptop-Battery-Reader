@@ -242,7 +242,7 @@ void MainWindow::slotTimerAlarm()
             }
                 break;
 
-            case 0x3c:   // CELL4_VOLTAGE
+            case 0x3c:   // CELL4_VOLTAGE//check
             {
                 INT     length_of_block=0;
                 BYTE    readed_block[32]={0};
