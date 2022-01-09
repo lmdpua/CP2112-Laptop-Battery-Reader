@@ -51,3 +51,8 @@ INCLUDEPATH += $$PWD/./
 DEPENDPATH += $$PWD/./
 
 QMAKE_LIBDIR += $$PWD/./
+
+RESOURCES += \
+    myResources.qrc
+
+RC_ICONS = icon.ico
