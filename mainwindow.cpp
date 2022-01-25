@@ -17,7 +17,7 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle("CP2112 Laptop Battery Reader");
     timer = new QTimer();
     connect(timer, SIGNAL(timeout()), this, SLOT(slotTimerAlarm()));
-    timer->start(1000); // И запустим таймер
+    timer->start(2000); // И запустим таймер
 }
 
 MainWindow::~MainWindow()
@@ -92,6 +92,27 @@ void MainWindow::slotTimerAlarm()
         str+="Hz";
 
         ui->statusbar->showMessage(str);
+
+
+        CP2112_SetGpioConfig(m_hidSmbus);
+
+//        BYTE direction;
+//        BYTE mode;
+//        BYTE function;
+//        CP2112_GetGpioConfig(m_hidSmbus, &direction, &mode, &function);
+//        QString gpio = QString ("Direction: %1\nMode:        %2\nFunction: %3")
+//                        .arg(direction,8,2,QLatin1Char('0')) //Преобразование в двоичное число, 8 символов, лидирующие нули
+//                        .arg(mode,8,2,QLatin1Char('0'))
+//                        .arg(function,8,2,QLatin1Char('0'));
+//        str="";
+//        str+="Dir: ";
+//        str+=QString::number(direction);
+//        str+="\nMode: ";
+//        str+=QString::number(mode);
+//        str+="\nFunc: ";
+//        str+=QString::number(function);
+//        ui->GPIO->setText(gpio);
+
 
 
 #define mAh FALSE

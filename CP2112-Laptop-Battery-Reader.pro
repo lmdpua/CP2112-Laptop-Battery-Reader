@@ -16,6 +16,7 @@ SOURCES += \
 
 HEADERS += \
     BatteryCommands.h \
+    GPIO_Config.h \
     SLABCP2112.h \
     SMBusConfig.h \
     cp2112.h \
