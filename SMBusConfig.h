@@ -6,7 +6,7 @@
 #define NUMBER_OF_SBS_ADDRESSES 37
 
 // Режим работы шины SMBUS
-#define BITRATE_HZ                  50000
+#define BITRATE_HZ                  70000
 #define ACK_ADDRESS                 0x02
 #define AUTO_RESPOND                FALSE
 #define WRITE_TIMEOUT_MS            1000
